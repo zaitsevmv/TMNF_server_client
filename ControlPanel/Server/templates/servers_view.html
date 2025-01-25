@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Servers</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="">
+    </head>
+    <body>
+        {% for server in servers %}
+        <div>
+            <h1>{{ server.name }}</h1>
+            <h3>Login: {{ server.login }}</h3>
+            {% if authorized %}
+                <h3>Address: {{ server.ip }}:{{ server.port }}</h3>
+            {% endif %}
+
+            {% if server.status == 1 %}
+                <h3>Status: WORKING</h3>
+                <h3>Map: ...</h3>
+                <h3>Players: .../{{ server.max_players }}</h3>
+                <h3>Gamemode: ...</h3>
+
+            {% elif server.status == 2 %}
+                <h3>Status: SLEEPING</h3>
+
+            {% elif server.status == 3 %}
+                <h3>Status: REBOOTING</h3>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </body>
+</html>

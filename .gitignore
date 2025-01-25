@@ -1,1 +1,12 @@
 TMF_test_server
+
+__pycache__
+*/__pycache__
+*/*/__pycache__
+
+instance
+
+ControlPanel/.venv
+ControlPanel/Server/instance
+
+template
