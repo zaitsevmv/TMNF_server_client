@@ -10,3 +10,7 @@ ControlPanel/.venv
 ControlPanel/Server/instance
 
 template
+
+.vscode
+
+build
