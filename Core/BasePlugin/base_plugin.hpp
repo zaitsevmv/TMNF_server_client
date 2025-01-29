@@ -1,31 +1,46 @@
 #include <optional>
 #include <string>
 #include <memory>
+#include <mutex>
 
+// #include "request.hpp"
+#include "server.hpp"
+#include "base_types.hpp"
 
 class BasePlugin{
 public:
-    struct Server{
-    public:
-        std::string host;
-        u_short serverPort;
-        u_short p2pPort;
-
-        const bool operator==(const Server&){};
+    enum class status{
+        ready, writing, writingError, down
     };
 
-    static BasePlugin& Instance(){
-        static BasePlugin theSingleInstance;
-        return theSingleInstance;
-    }
+    enum class messageError{
+        ok, error
+    };
 
-    void SetServer(Server* const svr);
+    BasePlugin(const std::string& pluginId, base_types::Server* const svr);
+    ~BasePlugin();
+
+    status StartClient();
+
+    status StopClient();
+
+    // messageError SendRequest(const base_types::Request& request);
+
+    void AddMessage(const std::string& message);
+
+    // virtual messageError HandleMessages();
+
+    std::string getPluginId();
 
     BasePlugin(const BasePlugin& pl) = delete;
     BasePlugin operator=(const BasePlugin&) = delete;
 private:
-    std::shared_ptr<Server> server;
-    BasePlugin(){};
+    int clientSocket;
 
-    
+    std::shared_ptr<base_types::Server> server;
+    std::string pluginId;
+
+    base_types::xmlResponseQueue pendingMessages;
+
+    status _status = status::down;
 };

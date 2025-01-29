@@ -5,5 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(PLUGIN_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 
+include_directories(${PLUGIN_SOURCE_DIR}/BaseStructures)
+
 add_subdirectory(BasePlugin)
 add_subdirectory(Tests)
