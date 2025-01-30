@@ -2,9 +2,9 @@
 // #include "base_plugin.hpp"
 
 int main(){
-    auto server = std::make_shared<base_types::Server>(base_types::Server("127.0.0.0", 2350, 3450));
+    auto server = base_types::Server("127.0.0.1", 2350, 5000);
     std::string name = "base_name";
-    auto plugin = BasePlugin(name, server.get());
+    auto plugin = BasePlugin(name, server);
     plugin.StartClient();
-    while(true);
+    plugin.listen();
 }

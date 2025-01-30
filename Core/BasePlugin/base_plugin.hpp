@@ -17,12 +17,14 @@ public:
         ok, error
     };
 
-    BasePlugin(const std::string& pluginId, base_types::Server* const svr);
+    BasePlugin(const std::string& pluginId, const base_types::Server& svr);
     ~BasePlugin();
 
     status StartClient();
 
-    status StopClient();
+    void StopClient();
+
+    status listen();
 
     // messageError SendRequest(const base_types::Request& request);
 
@@ -37,7 +39,7 @@ public:
 private:
     int clientSocket;
 
-    std::shared_ptr<base_types::Server> server;
+    base_types::Server server;
     std::string pluginId;
 
     base_types::xmlResponseQueue pendingMessages;
