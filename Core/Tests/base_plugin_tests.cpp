@@ -1,10 +1,16 @@
+#include "gtest/gtest.h"
+
 #include "../BasePlugin/base_plugin.hpp"
-// #include "base_plugin.hpp"
+
+TEST(ConnectionTest, BasePluginTests){
+    auto svr = base_types::Server("127.0.0.1", 2350, 5000);
+    std::string name = "default_name";
+    auto plugin = BasePlugin(name, svr);
+    auto st = plugin.StartClient();
+    EXPECT_EQ(st, BasePlugin::status::down);
+}
 
 int main(){
-    auto server = base_types::Server("127.0.0.1", 2350, 5000);
-    std::string name = "base_name";
-    auto plugin = BasePlugin(name, server);
-    plugin.StartClient();
-    plugin.listen();
+    testing::InitGoogleTest();
+    return RUN_ALL_TESTS();
 }
