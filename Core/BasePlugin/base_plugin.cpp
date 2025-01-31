@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <thread>
+#include <chrono>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -40,7 +42,7 @@ BasePlugin::status BasePlugin::StartClient() {
 
     if(connect(clientSocket, (sockaddr*)&serverInfo, sizeof(serverInfo)) == 0){
         _status = status::ready;
-        std::cout << "Client created" << std::endl;
+        std::cout << "Client created." << std::endl;
         return _status;
     }
     std::cerr << "Connecting to server failed. Error # " << errno << std::endl;
@@ -56,30 +58,59 @@ BasePlugin::status BasePlugin::listen()
 {
     if(_status != status::ready) return _status;
     std::vector<char> buffer(BUFFER_SIZE), closeMessage(3, 'x'), text(BUFFER_SIZE);
-    while(true){
-        fgets(text.data(), text.size(), stdin);
-        auto packet_size = send(clientSocket, text.data(), strlen(text.data()), 0);
-		if (packet_size == -1) {
-			std::cout << "Can't send message to Server. Error # " << errno << std::endl;
-            StopClient();
-            return _status;
-		}
+    std::string request = 
+        "<?xml version=\"1.0\"?>"
+        "<methodCall>"
+        "<methodName>GetStatus</methodName>"
+        "<params></params>"
+        "</methodCall>";
+    // fgets(text.data(), text.size(), stdin);
+    auto packet_size = send(clientSocket, request.c_str(), request.size(), 0);
+    if (packet_size == -1) {
+        std::cout << "Can't send message to Server. Error # " << errno << std::endl;
+        StopClient();
+        return _status;
+    }
+    // while(true){
+    //     std::string request = 
+    //         "<?xml version=\"1.0\"?>"
+    //         "<methodCall>"
+    //         "<methodName>GetStatus</methodName>"
+    //         "<params></params>"
+    //         "</methodCall>";
+    //     // fgets(text.data(), text.size(), stdin);
+    //     auto packet_size = send(clientSocket, request.c_str(), request.size(), 0);
+	// 	if (packet_size == -1) {
+	// 		std::cout << "Can't send message to Server. Error # " << errno << std::endl;
+    //         StopClient();
+    //         return _status;
+	// 	}
+    //     using namespace std::chrono_literals;
 
-        packet_size = recv(clientSocket, buffer.data(), buffer.size()-1, 0);
-        if(packet_size == -1){
-            std::cout << "Can't get message from Server. Error # " << errno << std::endl;
-            StopClient();
-            return _status;
-        } else if (packet_size == 0) { 
-            std::cout << "Server closed connection." << std::endl;
-            StopClient();
-            return _status;
-        }
-        buffer[packet_size] = '\0';
-        std::cout << "Server's message: " << buffer.data() << std::endl;
-        if(strncmp(buffer.data(), closeMessage.data(), closeMessage.size()) == 0){
-            StopClient();
-            return _status;
+    //     std::this_thread::sleep_for(2000ms);
+    //     packet_size = recv(clientSocket, buffer.data(), buffer.size()-1, 0);
+    //     if(packet_size == -1){
+    //         std::cout << "Can't get message from Server. Error # " << errno << std::endl;
+    //         StopClient();
+    //         return _status;
+    //     } else if (packet_size == 0) { 
+    //         std::cout << "Server closed connection." << std::endl;
+    //         StopClient();
+    //         return _status;
+    //     }
+    //     buffer[packet_size] = '\0';
+    //     std::cout << "Server's message: " << buffer.data() << std::endl;
+    //     if(strncmp(buffer.data(), closeMessage.data(), closeMessage.size()) == 0){
+    //         StopClient();
+    //         return _status;
+    //     }
+    // }
+    while (true) {
+        int packet_size = recv(clientSocket, buffer.data(), buffer.size() - 1, 0);
+        if (packet_size > 0) {
+                buffer[packet_size] = '\0';
+                std::cout << "Server response: " << buffer.data() << std::endl;
+                break; // Exit loop after receiving the response
         }
     }
     return _status;
