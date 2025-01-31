@@ -1,3 +1,4 @@
+#include <fstream>
 #include <optional>
 #include <string>
 #include <memory>
@@ -26,11 +27,9 @@ public:
 
     status listen();
 
-    // messageError SendRequest(const base_types::Request& request);
-
     void AddMessage(const std::string& message);
 
-    // virtual messageError HandleMessages();
+    // messageError HandleMessages();
 
     std::string getPluginId();
 
@@ -42,7 +41,19 @@ private:
     base_types::Server server;
     std::string pluginId;
 
+    uint32_t currentHandler;
+
     base_types::xmlResponseQueue pendingMessages;
 
-    status _status = status::down;
+    status status_ = status::down;
+
+    std::ofstream pluginLogs;
+
+    void WriteToLogs(const std::string& message, const bool isError);
+    void WriteToLogs(const std::string& message){
+        WriteToLogs(message, false);
+    }
+
+    // messageError SendRequest(const base_types::Request& request);
+    messageError SendXML(const std::string& xml);
 };
