@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <string>
@@ -19,6 +20,7 @@ constexpr int HANDLER_SIZE = 4;
 BasePlugin::BasePlugin(const std::string& plugin, const base_types::Server& svr)
     : pluginId{plugin}, server{svr} {
     pluginLogs.open("plugin_logs.txt", std::ios::out | std::ios::app);
+    pluginLogs << ". . ." << std::endl;
 }
 
 BasePlugin::~BasePlugin() {
@@ -28,6 +30,7 @@ BasePlugin::~BasePlugin() {
 BasePlugin::status BasePlugin::StartClient() {
     if(status_ == status::ready || status_ == status::writing) return status_;
     if(status_ != status::down) StopClient();
+    WriteToLogs("Connecting to server.");
     status_ = status::down;
     clientSocket = socket(AF_INET, SOCK_STREAM, 0);
     if(clientSocket == -1) {
@@ -51,6 +54,8 @@ BasePlugin::status BasePlugin::StartClient() {
         return status_;
     }
 
+    WriteToLogs("Getting header.");
+
     std::vector<char> sizeBytes(SIZE_SIZE);
     auto sizeResponseSize = recv(clientSocket, sizeBytes.data(), SIZE_SIZE, 0);
     if(sizeResponseSize != SIZE_SIZE){
@@ -60,7 +65,7 @@ BasePlugin::status BasePlugin::StartClient() {
 
     uint32_t sizeValue = 0;
     for(auto i = 0; i < SIZE_SIZE; i++){
-        sizeValue |= (sizeBytes[i] << 8*i);
+        sizeValue |= ((static_cast<uint32_t>(sizeBytes[i]) & 0xFF) << 8*i);
     }
     if(sizeValue > BUFFER_SIZE){
         WriteToLogs("Got a very big header.", 1);
@@ -73,8 +78,8 @@ BasePlugin::status BasePlugin::StartClient() {
         WriteToLogs("Can't get header. Error # " + std::to_string(errno), 1);
         return status_;
     }
-    if(std::string(headerBytes.data()) != "GBXRemote 2"){
-        WriteToLogs("Got incorrect header from server.", 1);
+    if(std::string(headerBytes.data()).substr(0, sizeValue) != "GBXRemote 2"){
+        WriteToLogs("Got incorrect header from server. Got: " + std::string(headerBytes.data()), 1);
         return status_;
     }
     status_ = status::ready;
@@ -85,6 +90,7 @@ BasePlugin::status BasePlugin::StartClient() {
 void BasePlugin::StopClient() {
     close(clientSocket);
     status_ = status::down;
+    WriteToLogs("Client socket closed.");
 }
 
 BasePlugin::messageError BasePlugin::SendXML(const std::string& xml){
@@ -143,13 +149,11 @@ BasePlugin::status BasePlugin::listen()
             return status_;
         }
 
-        //FIX ME
         uint32_t sizeValue = 0;
         for(auto i = 0; i < SIZE_SIZE; i++){
-            sizeValue |= (static_cast<uint32_t>(messageSize[i]) << 8*i);
-            std::cout << sizeValue << std::endl;
+            sizeValue |= ((static_cast<uint32_t>(messageSize[i]) & 0xFF) << 8*i);
         }
-        if(sizeValue < 0){
+        if(sizeValue > BUFFER_SIZE){
             WriteToLogs("Got a very big message from server.", 1);
             StopClient();
             return status_;
@@ -159,7 +163,6 @@ BasePlugin::status BasePlugin::listen()
 
         std::vector<char> data(sizeValue);
         auto dataSize = recv(clientSocket, data.data(), data.size(), 0);
-        std::cout << dataSize << ' ' << sizeValue << std::endl;
         if(dataSize != sizeValue){
             WriteToLogs("Got smaller message than expected.", 1);
             StopClient();
@@ -168,14 +171,16 @@ BasePlugin::status BasePlugin::listen()
 
         WriteToLogs("Got message from server: " + std::string(data.data()));
         AddMessage(std::string(data.data()));
-        std::cout << "Server's message: " << data.data() << std::endl;
     }
     return status_;
 }
 
 void BasePlugin::WriteToLogs(const std::string& message, const bool isError){
-    if(isError) pluginLogs << "Error: ";
-    pluginLogs << "[" << pluginId << "] " << message << std::endl;
+    auto t = std::time(nullptr);
+    auto currentTime = *std::localtime(&t);
+    pluginLogs << std::put_time(&currentTime, "%d/%m/%y %H:%M:%S");
+    if(isError) pluginLogs << " Error:";
+    pluginLogs << " [" << pluginId << "] " << message << std::endl;
 }
 
 void BasePlugin::AddMessage(const std::string& message){

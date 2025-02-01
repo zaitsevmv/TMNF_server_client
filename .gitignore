@@ -12,5 +12,6 @@ ControlPanel/Server/instance
 template
 
 .vscode
+.cache
 
 build
