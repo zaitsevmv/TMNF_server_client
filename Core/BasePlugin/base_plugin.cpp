@@ -4,6 +4,7 @@
 #include <numeric>
 #include <string>
 #include <sys/types.h>
+#include <thread>
 #include <vector>
 #include <cstring>
 
@@ -27,8 +28,29 @@ BasePlugin::~BasePlugin() {
     StopClient();
 }
 
+void BasePlugin::run(){
+    StartClient();
+    std::string initialMessage = "<?xml version=\"1.0\"?><methodCall><methodName>Authenticate</methodName><params><param><value>SuperAdmin</value></param><param><value>yr4K5AxSGqkb6tEP928HRg</value></param></params></methodCall>";
+    if(SendXML(initialMessage) != messageError::ok){
+        WriteToLogs("Can't send auth message.", 1);
+        return;
+    }
+    listen();
+    if(status_ != status::ready){
+        return;
+    }
+    while(pendingMessages.empty()); //wait for responce
+    pendingMessages.pop();
+    std::string testMessage = "<?xml version=\"1.0\"?><methodCall><methodName>SetServerName</methodName><params><param><value>SmallBalls</value></param></params></methodCall>";
+    if(SendXML(testMessage) != messageError::ok){
+        WriteToLogs("Can't send test message.", 1);
+        return;
+    }
+    while(pendingMessages.empty()); //wait for responce
+}
+
 BasePlugin::status BasePlugin::StartClient() {
-    if(status_ == status::ready || status_ == status::writing) return status_;
+    if(status_ == status::ready) return status_;
     if(status_ != status::down) StopClient();
     WriteToLogs("Connecting to server.");
     status_ = status::down;
@@ -78,7 +100,7 @@ BasePlugin::status BasePlugin::StartClient() {
         WriteToLogs("Can't get header. Error # " + std::to_string(errno), 1);
         return status_;
     }
-    if(std::string(headerBytes.data()).substr(0, sizeValue) != "GBXRemote 2"){
+    if(std::string(headerBytes.data(), headerBytes.size()) != "GBXRemote 2"){
         WriteToLogs("Got incorrect header from server. Got: " + std::string(headerBytes.data()), 1);
         return status_;
     }
@@ -128,50 +150,47 @@ BasePlugin::messageError BasePlugin::SendXML(const std::string& xml){
 BasePlugin::status BasePlugin::listen()
 {
     if(status_ != status::ready) return status_;
-    
-    //TEST
-    std::string initialMessage = "<?xml version=\"1.0\"?><methodCall><methodName>Authenticate</methodName><params><param><value>SuperAdmin</value></param><param><value>yr4K5AxSGqkb6tEP928HRg</value></param></params></methodCall>";
-    if(SendXML(initialMessage) != messageError::ok){
-        WriteToLogs("Can't send auth message.", 1);
+    auto listeningProcess = [&](){
+        std::vector<char> messageSize(SIZE_SIZE), messageHandler(HANDLER_SIZE);
+        while(status_ != status::down){
+            auto sizeSize = recv(clientSocket, messageSize.data(), messageSize.size(), 0);
+            if(sizeSize != SIZE_SIZE){
+                WriteToLogs("Can't get message from Server. Error # " + std::to_string(errno), 1);
+                StopClient();
+                return status_;
+            } else if (sizeSize == 0) { 
+                WriteToLogs("Server closed connection");
+                StopClient();
+                return status_;
+            }
+
+            uint32_t sizeValue = 0;
+            for(auto i = 0; i < SIZE_SIZE; i++){
+                sizeValue |= ((static_cast<uint32_t>(messageSize[i]) & 0xFF) << 8*i);
+            }
+            if(sizeValue > BUFFER_SIZE){
+                WriteToLogs("Got a very big message from server.", 1);
+                StopClient();
+                return status_;
+            }
+            
+            auto handlerSize = recv(clientSocket, messageHandler.data(), messageHandler.size(), 0);
+
+            std::vector<char> data(sizeValue);
+            auto dataSize = recv(clientSocket, data.data(), data.size(), 0);
+            if(dataSize != sizeValue){
+                WriteToLogs("Got smaller message than expected.", 1);
+                StopClient();
+                return status_;
+            }
+
+            WriteToLogs("Got message from server: " + std::string(data.data(), data.size()));
+            AddMessage(std::string(data.data()));
+        }
         return status_;
-    }
-
-    std::vector<char> messageSize(SIZE_SIZE), messageHandler(HANDLER_SIZE);
-    while(status_ != status::down){
-        auto sizeSize = recv(clientSocket, messageSize.data(), messageSize.size(), 0);
-        if(sizeSize != SIZE_SIZE){
-            WriteToLogs("Can't get message from Server. Error # " + std::to_string(errno), 1);
-            StopClient();
-            return status_;
-        } else if (sizeSize == 0) { 
-            WriteToLogs("Server closed connection");
-            StopClient();
-            return status_;
-        }
-
-        uint32_t sizeValue = 0;
-        for(auto i = 0; i < SIZE_SIZE; i++){
-            sizeValue |= ((static_cast<uint32_t>(messageSize[i]) & 0xFF) << 8*i);
-        }
-        if(sizeValue > BUFFER_SIZE){
-            WriteToLogs("Got a very big message from server.", 1);
-            StopClient();
-            return status_;
-        }
-        
-        auto handlerSize = recv(clientSocket, messageHandler.data(), messageHandler.size(), 0);
-
-        std::vector<char> data(sizeValue);
-        auto dataSize = recv(clientSocket, data.data(), data.size(), 0);
-        if(dataSize != sizeValue){
-            WriteToLogs("Got smaller message than expected.", 1);
-            StopClient();
-            return status_;
-        }
-
-        WriteToLogs("Got message from server: " + std::string(data.data()));
-        AddMessage(std::string(data.data()));
-    }
+    };
+    listeningThread = std::thread(listeningProcess);
+    listeningThread.detach();
     return status_;
 }
 

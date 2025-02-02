@@ -8,10 +8,12 @@ set(PLUGIN_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 include_directories(${PLUGIN_SOURCE_DIR}/BaseStructures)
 
 add_subdirectory(BasePlugin)
+add_subdirectory(BaseRequestPlugin)
+add_subdirectory(CallbackListener)
 add_subdirectory(Tests)
 
 add_executable(main main.cpp)
-target_link_directories(main PRIVATE 
+target_include_directories(main PRIVATE 
     ${PLUGIN_SOURCE_DIR}/BasePlugin)
 
 target_link_libraries(main base_plugin)

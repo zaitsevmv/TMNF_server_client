@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <mutex>
+#include <thread>
 
 // #include "request.hpp"
 #include "server.hpp"
@@ -11,7 +12,7 @@
 class BasePlugin{
 public:
     enum class status{
-        ready, writing, writingError, down
+        ready, down
     };
 
     enum class messageError{
@@ -21,15 +22,15 @@ public:
     BasePlugin(const std::string& pluginId, const base_types::Server& svr);
     ~BasePlugin();
 
+    void run(); //should be remade for child plugins
+
     status StartClient();
 
     void StopClient();
 
-    status listen();
+    status listen(); //should be fixed. Can make separate listen for callbacks and requests. This can be 2 base plugins.
 
     void AddMessage(const std::string& message);
-
-    // messageError HandleMessages();
 
     std::string getPluginId();
 
@@ -44,6 +45,8 @@ private:
     uint32_t currentHandler;
 
     base_types::xmlResponseQueue pendingMessages;
+
+    std::thread listeningThread;
 
     status status_ = status::down;
 

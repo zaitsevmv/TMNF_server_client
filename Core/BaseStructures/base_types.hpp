@@ -4,7 +4,7 @@
 #include <queue>
 
 namespace base_types{
-    using requestParam = std::variant<int, std::string, std::vector<int>, std::vector<std::string>>;
+    using xmlParam = std::variant<int, std::string, bool, double>;
 
     using stringVec = std::vector<std::string>;
 

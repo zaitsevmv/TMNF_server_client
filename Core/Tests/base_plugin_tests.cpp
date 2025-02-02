@@ -2,7 +2,7 @@
 
 #include "gtest/gtest.h"
 
-#include "../BasePlugin/base_plugin.hpp"
+#include "base_plugin.hpp"
 
 TEST(FailConnectionTest, BasePluginTests){
     auto svr = base_types::Server("127.0.0.1", 2350, 5001);

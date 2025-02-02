@@ -10,7 +10,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(base_plugin_tests base_plugin_tests.cpp)
 
-target_link_directories(base_plugin_tests PRIVATE 
+target_include_directories(base_plugin_tests PRIVATE 
     ${PLUGIN_SOURCE_DIR}/BasePlugin
     ${gtest_SOURCE_DIR}/include)
 
