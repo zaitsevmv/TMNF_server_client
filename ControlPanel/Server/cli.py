@@ -32,9 +32,15 @@ def add_admin(path):
     new_server = Server(login=server.login, 
                         name=server.name, 
                         ip=server.ip, 
-                        port=server.port, 
+                        status=server.server_status.value,
+                        current_map_uid=server.current_map.uid,
+                        current_map_name=server.current_map.name,
+                        current_players=server.current_players,
                         max_players=server.max_players,
-                        status=ServerStatus.STATUS_SLEEPING.value)
+                        gamemode=server.current_gamemode.value,
+                        server_port=server.server_port,
+                        p2p_port=server.p2p_port,
+                        rpc_port=server.rpc_port)
     
     db.session.add(new_server)
     db.session.commit()

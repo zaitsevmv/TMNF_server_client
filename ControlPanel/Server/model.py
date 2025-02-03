@@ -32,8 +32,17 @@ class Server(db.Model):
     login: Mapped[str] = mapped_column(String(255), unique=True)
     name: Mapped[str] = mapped_column(String(255))
     status: Mapped[int] = mapped_column(Integer)
-    map: Mapped[str] = mapped_column(String(255), nullable=True)
+    current_map_uid: Mapped[str] = mapped_column(String(255))
+    current_map_name: Mapped[str] = mapped_column(String(255))
+    current_players: Mapped[int] = mapped_column(Integer)
     max_players: Mapped[int] = mapped_column(Integer)
-    gamemode: Mapped[int] = mapped_column(Integer, nullable=True)
+    gamemode: Mapped[int] = mapped_column(Integer)
     ip: Mapped[str] = mapped_column(String(15))
-    port: Mapped[int] = mapped_column(Integer)
+    server_port: Mapped[int] = mapped_column(Integer)
+    p2p_port: Mapped[int] = mapped_column(Integer)
+    rpc_port: Mapped[int] = mapped_column(Integer)
+
+
+class TrackmaniaMap:
+    uid: str
+    name: str
